@@ -91,5 +91,5 @@ rule mpileup:
              outdir = 'ALIGN/hg19_snp15_markdup_rmi_v2.bcf'
         threads:1  # set the maximum number of available cores
         shell:
-            '/sysapps/cluster/software/SAMtools/1.9-goolf-1.7.20/bin/samtools mpileup -A -q 4 -t AD,DP -l /hpcdata/sg/sg_data/CHI/PROJECTS/COVID/KINSHIP/SNP_DB/SNP_DB.bed_minuschr.bed  -f /hpcdata/sg/sg_data/CHI/PROJECTS/COVID/KINSHIP/hg19/Genome.fa  -g {input.allsortfixmate} | bin/samtools call -m  -O b -f GQ > ALIGN/hg19_snp15_markdup_rmi_v2.bcf'
+            'bin/samtools mpileup -A -q 4 -t AD,DP -l /hpcdata/sg/sg_data/CHI/PROJECTS/COVID/KINSHIP/SNP_DB/SNP_DB.bed_minuschr.bed  -f /hpcdata/sg/sg_data/CHI/PROJECTS/COVID/KINSHIP/hg19/Genome.fa  -g {input.allsortfixmate} | bin/samtools call -m  -O b -f GQ > ALIGN/hg19_snp15_markdup_rmi_v2.bcf'
 
