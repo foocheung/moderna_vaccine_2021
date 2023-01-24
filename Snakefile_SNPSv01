@@ -1,0 +1,95 @@
+from os import listdir
+import glob
+import os
+
+configfile: "config.yaml"
+print (config['samples'])
+
+
+
+rule all:
+    input:
+        expand("outdir/{sample}_output/Aligned.sortedByCoord.out.bam", sample = config['samples']),
+	expand("outdir/{sample}_output/Aligned.sortedByCoord.out.bam.sort", sample = config['samples']),
+	expand("outdir/{sample}_output/Aligned.sortedByCoord.out.bam.sort.fixmate", sample = config['samples']),
+	expand("outdir/{sample}_output/Aligned.sortedByCoord.out.bam.sort.fixmate.sort", sample = config['samples']),	
+	expand("outdir/{sample}_output/Aligned.sortedByCoord.out.bam.sort.fixmate.sort.markdup",sample = config['samples']),
+        "ALIGN/hg19_snp15_markdup_rmi_v2.bcf"
+rule pass1:
+        input:
+            R1L1 = 'fastq/{sample}_L001_R1_001.fastq.gz', # may need adjustment if your fastq file name format is different
+            R2L1 = 'fastq/{sample}_L001_R2_001.fastq.gz',
+            refdir = directory('/hpcdata/sg/sg_data/CHI/PROJECTS/COVID/KINSHIP/hg19/CURRENT')
+        params:
+            outdir = 'outdir/{sample}_output'
+        output:
+            "outdir/{sample}_output/Aligned.sortedByCoord.out.bam"
+        threads: 1 # set the maximum number of available cores
+        shell:
+            'rm -rf {params.outdir} &&' 
+            'mkdir {params.outdir} && '
+            'cd {params.outdir} && '
+            'bin/STAR --runThreadN {threads} '
+            '--genomeDir {input.refdir} '
+            '--readFilesIn {input.R1L1} {input.R2L1} '
+            '--readFilesCommand zcat '
+            '--outSAMtype BAM SortedByCoordinate && cd ..'
+
+
+rule sort:
+        input:
+            sortbam = 'outdir/{sample}_output/Aligned.sortedByCoord.out.bam'
+        params:
+            outdir = 'outdir/{sample}_output'
+        output:
+             outdir = 'outdir/{sample}_output/Aligned.sortedByCoord.out.bam.sort'
+        threads:1  # set the maximum number of available cores
+        shell:
+            'bin/samtools  sort -@ 6 -n {input.sortbam} -o  {output.outdir}'
+
+rule fixmate:
+        input:
+            fixmate = 'outdir/{sample}_output/Aligned.sortedByCoord.out.bam.sort'
+        params:
+            outdir = 'outdir/{sample}_output'
+        output:
+             outdir = 'outdir/{sample}_output/Aligned.sortedByCoord.out.bam.sort.fixmate'
+        threads:1  # set the maximum number of available cores
+        shell:
+            'bin/samtools  fixmate -@ 6 -m {input.fixmate} {output.outdir}'
+
+rule sort2:
+        input:
+            sortbam2 = 'outdir/{sample}_output/Aligned.sortedByCoord.out.bam.sort.fixmate'
+        params:
+            outdir = 'outdir/{sample}_output'
+        output:
+             outdir = 'outdir/{sample}_output/Aligned.sortedByCoord.out.bam.sort.fixmate.sort'
+        threads:1  # set the maximum number of available cores
+        shell:
+            'bin/samtools  sort -@ 6 {input.sortbam2} -o  {output.outdir}'
+
+
+rule markdup:
+        input:
+            sortfixmate = 'outdir/{sample}_output/Aligned.sortedByCoord.out.bam.sort.fixmate.sort'
+        params:
+            outdir = 'outdir/{sample}_output'
+        output:
+             outdir = 'outdir/{sample}_output/Aligned.sortedByCoord.out.bam.sort.fixmate.sort.markdup'
+        threads:1  # set the maximum number of available cores
+        shell:
+            'bin/samtools  markdup -@ 6 -r {input.sortfixmate}  {output.outdir}'
+
+
+rule mpileup:
+        input:
+            allsortfixmate = expand('outdir/{sample}_output/Aligned.sortedByCoord.out.bam.sort.fixmate.sort', sample=config["samples"]),
+            snp='/hpcdata/sg/sg_data/CHI/PROJECTS/COVID/KINSHIP/SNP_DB/SNP_DB.bed_minuschr.bed',
+	    genomedir='/hpcdata/sg/sg_data/CHI/PROJECTS/COVID/KINSHIP/hg19/Genome.fa'
+        output:
+             outdir = 'ALIGN/hg19_snp15_markdup_rmi_v2.bcf'
+        threads:1  # set the maximum number of available cores
+        shell:
+            '/sysapps/cluster/software/SAMtools/1.9-goolf-1.7.20/bin/samtools mpileup -A -q 4 -t AD,DP -l /hpcdata/sg/sg_data/CHI/PROJECTS/COVID/KINSHIP/SNP_DB/SNP_DB.bed_minuschr.bed  -f /hpcdata/sg/sg_data/CHI/PROJECTS/COVID/KINSHIP/hg19/Genome.fa  -g {input.allsortfixmate} | bin/samtools call -m  -O b -f GQ > ALIGN/hg19_snp15_markdup_rmi_v2.bcf'
+
