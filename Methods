@@ -1,0 +1,9 @@
+Methods
+Bulk RNA sequencing and single cell sample demultiplexing For each sample, cells was processed in Trizol using the miRNAeasy micro kit (QIAGEN, Germantown,
+MD) and standard RNA sequencing libraries were generated using Illumina Truseq library preparation kits. These libraries were used to generate SNP calls 
+for each donor. Sequencing results were demultiplexed and converted to FASTQ format using Illumina bcl2fastq software. The sequencing reads were adaptor
+and quality trimmed and then aligned to the human genome using the splice-aware STAR aligner and SNP calls were generated using the previously published 
+protocol (Blay et al., 2019). We used the software package demuxlet (Kang et al., 2018) to then match single cells in the 10x RNaseq data to each donor 
+and identify doublets. Because multiple samples from different time points for each donor may be collected and could not be demultiplexed by this method 
+alone, we also used ‘hashtag’ antibodies (Biolegend) to uniquely label the different time points (Stoeckius et al., 2018).
+
